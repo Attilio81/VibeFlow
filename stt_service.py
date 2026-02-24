@@ -1,48 +1,37 @@
 from faster_whisper import WhisperModel
 import os
-import site
+import logging
+from cuda_utils import add_nvidia_dll_paths
 
-def _add_nvidia_dll_paths():
-    try:
-        packages = site.getsitepackages()
-        user_site = site.getusersitepackages()
-        if isinstance(user_site, str):
-            packages.append(user_site)
-            
-        for site_package in packages:
-            for nvidia_pkg in ['cublas', 'cudnn', 'cufft', 'curand', 'cusolver', 'cusparse', 'nvjitlink']:
-                bin_path = os.path.join(site_package, 'nvidia', nvidia_pkg, 'bin')
-                if os.path.exists(bin_path):
-                    os.add_dll_directory(bin_path)
-                    os.environ["PATH"] = bin_path + os.pathsep + os.environ["PATH"]
-    except Exception:
-        pass
+add_nvidia_dll_paths()
 
-_add_nvidia_dll_paths()
+logger = logging.getLogger("vibeflow")
+
+
 class STTService:
     def __init__(self, model_size="medium", device="cuda", compute_type="float16"):
-        print(f"Loading Whisper model '{model_size}' on {device}...")
+        logger.info(f"Loading Whisper model '{model_size}' on {device}...")
         try:
             # medium: best balance between speed and accuracy for Italian
             self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
         except Exception as e:
-            print(f"Failed to load {model_size} on {device}: {e}. Trying 'small'...")
+            logger.warning(f"Failed to load {model_size} on {device}: {e}. Trying 'small'...")
             try:
                 self.model = WhisperModel("small", device=device, compute_type=compute_type)
-            except:
-                print(f"Falling back to 'base' on CPU...")
+            except Exception:
+                logger.warning("Falling back to 'base' on CPU...")
                 self.model = WhisperModel("base", device="cpu", compute_type="int8")
-        print("Whisper model loaded.")
-        
+        logger.info("Whisper model loaded.")
+
         # Load personal dictionary from file
         self.personal_dictionary = self._load_personal_dictionary()
-        print(f"Loaded {len(self.personal_dictionary)} custom words from personal dictionary")
-    
+        logger.info(f"Loaded {len(self.personal_dictionary)} custom words from personal dictionary")
+
     def _load_personal_dictionary(self):
         """Load custom words from personal_dictionary.txt"""
         dictionary_file = "personal_dictionary.txt"
         words = []
-        
+
         try:
             with open(dictionary_file, 'r', encoding='utf-8') as f:
                 for line in f:
@@ -51,7 +40,7 @@ class STTService:
                     if line and not line.startswith('#'):
                         words.append(line)
         except FileNotFoundError:
-            print(f"Warning: {dictionary_file} not found. Using default dictionary.")
+            logger.warning(f"{dictionary_file} not found. Using built-in fallback dictionary.")
             # Default words
             words = [
                 "WebService",
@@ -60,15 +49,15 @@ class STTService:
                 "LMStudio",
                 "VibeFlow"
             ]
-        
+
         return words
 
     def transcribe(self, audio_file: str) -> str:
         if not audio_file or not os.path.exists(audio_file):
             return ""
-            
-        print("Transcribing with optimized parameters (Wispr Flow-inspired)...")
-        
+
+        logger.info("Transcribing with optimized parameters (Wispr Flow-inspired)...")
+
         # Build initial prompt with personal dictionary and context
         initial_prompt = (
             "Trascrizione accurata in italiano. "
@@ -76,10 +65,10 @@ class STTService:
             f"Dizionario personalizzato: {', '.join(self.personal_dictionary)}. "
             "Termini comuni: email, meeting, progetto, team, deadline, task."
         )
-        
+
         # Optimized parameters inspired by Wispr Flow and Whisper best practices
         segments, info = self.model.transcribe(
-            audio_file, 
+            audio_file,
             language="it",
             beam_size=5,              # Beam search for better accuracy
             best_of=5,                # Sample multiple candidates
@@ -98,15 +87,16 @@ class STTService:
             initial_prompt=initial_prompt,
             hallucination_silence_threshold=1.0  # Prevent hallucinations
         )
-        
+
         # Combine segments
         text = " ".join([segment.text.strip() for segment in segments])
-        print(f"Raw transcription: {text}")
-        
+        logger.info(f"Raw transcription: {text}")
+
         # Clean up temp file
         try:
             os.remove(audio_file)
-        except:
-            pass
-            
+            logger.debug(f"Temp file removed: {audio_file}")
+        except Exception as e:
+            logger.warning(f"Could not remove temp file {audio_file}: {e}")
+
         return text.strip()

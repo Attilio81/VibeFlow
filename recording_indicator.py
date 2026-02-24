@@ -2,13 +2,17 @@ import tkinter as tk
 from tkinter import font as tkfont
 from plyer import notification
 import threading
+import logging
+
+logger = logging.getLogger("vibeflow")
+
 try:
     import win32gui
     import win32con
     HAS_WIN32 = True
-except:
+except Exception:
     HAS_WIN32 = False
-    print("Warning: pywin32 not available, focus restoration disabled")
+    logger.warning("pywin32 not available – focus restoration disabled")
 
 class RecordingIndicator:
     def __init__(self):
@@ -19,6 +23,7 @@ class RecordingIndicator:
         self.use_notifications = False  # Fallback to Windows notifications
         self.stop_recording = False  # Flag for manual stop
         self.saved_window_handle = None  # Save active window
+        self.current_rms = 0.0  # Latest audio level from AudioManager
         
         # Try to initialize Tkinter window
         try:
@@ -202,25 +207,36 @@ class RecordingIndicator:
         except:
             pass
     
+    def set_audio_level(self, rms: float) -> None:
+        """Called by AudioManager with the current RMS level of each audio chunk.
+
+        Thread-safe: AudioManager runs in a background thread.
+        """
+        self.current_rms = rms
+
     def _animate_waveform(self):
-        """Animate waveform bars with random heights."""
+        """Animate waveform bars driven by the real audio RMS level."""
         if not self.animation_running or not self.window or not self.is_showing:
             return
-        
+
         try:
             import random
-            
-            # Update each bar with random height
+
+            # Scale RMS (typical range 0.0–0.05) to bar height (4–50 px).
+            # Clamp so very loud audio doesn't overflow the canvas.
+            base_height = max(4, min(50, int(self.current_rms * 1200)))
+
             for bar in self.waveform_bars:
-                height = random.randint(5, 50)
+                # Add small per-bar jitter so the waveform looks natural
+                height = max(3, min(55, base_height + random.randint(-6, 6)))
                 coords = self.canvas.coords(bar)
                 x1, _, x2, _ = coords
                 center_y = 30
-                self.canvas.coords(bar, x1, center_y - height//2, x2, center_y + height//2)
-            
+                self.canvas.coords(bar, x1, center_y - height // 2, x2, center_y + height // 2)
+
             # Continue animation
             self.window.after(80, self._animate_waveform)
-        except:
+        except Exception:
             pass
     
     def update_status(self, status_text):
