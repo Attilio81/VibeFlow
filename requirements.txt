@@ -1,0 +1,31 @@
+# Core dependencies
+python-dotenv==1.2.1
+
+# Audio processing
+sounddevice==0.5.5
+soundfile==0.13.1
+noisereduce==3.0.3
+scipy==1.17.1
+numpy==2.4.2
+
+# Speech-to-Text (faster-whisper with CUDA support)
+faster-whisper==1.2.1
+ctranslate2==4.7.1
+
+# NVIDIA CUDA support
+nvidia-cublas-cu12==12.9.1.4
+nvidia-cudnn-cu12==9.19.0.56
+
+# LLM Integration
+agno==2.5.3
+openai==2.21.0
+
+# Windows integration
+pywin32==311
+keyboard==0.13.5
+
+# UI and Dashboard
+gradio==6.6.0
+
+# Notifications
+plyer==2.1.0

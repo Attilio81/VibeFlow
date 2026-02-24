@@ -1,0 +1,22 @@
+# Personal Dictionary - VibeFlow
+# Aggiungi qui parole personalizzate (nomi propri, termini tecnici, acronimi)
+# Una parola per riga. Whisper userà queste parole come riferimento per migliorare l'accuratezza.
+
+# Esempi di termini tecnici
+WebService
+installare
+informatica
+LMStudio
+VibeFlow
+
+# Esempi di nomi propri o aziende
+Netesa
+DeepSeek
+
+# Acronimi comuni
+API
+URL
+CRUD
+REST
+
+# Aggiungi le tue parole qui sotto:
