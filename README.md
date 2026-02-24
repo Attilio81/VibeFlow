@@ -4,7 +4,7 @@
 
 ## ✨ Caratteristiche
 
-- 🎯 **Hotkey globali** - Registra in qualsiasi applicazione con `Freccia Basso + 1/2/3`
+- 🎯 **Hotkey globali** - Registra in qualsiasi applicazione con `CTRL+ALT+1/2/3`
 - 🎨 **3 stili di scrittura** - Confidenziale, Formale, Tecnico
 - 🧠 **AI-powered** - Rimuove automaticamente riempitivi ("ehm", "uhm"), formatta liste e corregge grammatica
 - 🚀 **CUDA accelerato** - Whisper medium model su GPU per trascrizioni veloci e precise
@@ -142,14 +142,14 @@ L'app si avvia in background e ascolta gli hotkey globali.
 
 | Hotkey | Vibe | Descrizione |
 |--------|------|-------------|
-| `Freccia Basso + 1` | **Confidenziale** | Stile amichevole e colloquiale (WhatsApp, chat) |
-| `Freccia Basso + 2` | **Formale** | Stile professionale (email, documenti) |
-| `Freccia Basso + 3` | **Tecnico** | Stile preciso e strutturato (documentazione, report) |
+| `CTRL+ALT+1` | **Confidenziale** | Stile amichevole e colloquiale (WhatsApp, chat) |
+| `CTRL+ALT+2` | **Formale** | Stile professionale (email, documenti) |
+| `CTRL+ALT+3` | **Tecnico** | Stile preciso e strutturato (documentazione, report) |
 
 ### Workflow tipico
 
 1. **Posizionati** dove vuoi scrivere (Word, browser, Notepad, etc.)
-2. **Premi** `Freccia Basso + 1` (o 2/3)
+2. **Premi** `CTRL+ALT+1` (o 2/3)
 3. **Parla** - Apparirà l'overlay con waveform animata e l'icona del provider (💻 o ☁️)
 4. **Finisci** - Clicca **✕ Stop** oppure attendi 3 secondi di silenzio
 5. **Automatico** - Il testo viene trascritto, formattato e incollato dove stavi scrivendo
@@ -162,10 +162,12 @@ Per testare audio e trascrizioni senza usare hotkey:
 python dashboard.py
 ```
 
-Si apre un'interfaccia web Gradio su `http://localhost:7860` con due sezioni:
+Si apre un'interfaccia web Gradio su `http://localhost:7860` con quattro sezioni:
 
 - **🎤 Test Audio** - Testa trascrizione e formattazione senza usare hotkey
 - **⚙️ Editor Profili** - Modifica i system prompt dei tre stili di scrittura
+- **📖 Dizionario Personale** - Modifica `personal_dictionary.txt` direttamente dalla UI
+- **▶️ Controllo VibeFlow** - Avvia/ferma `main.py` e visualizza i log in tempo reale
 
 #### Editor Profili
 
@@ -177,9 +179,21 @@ L'editor profili ti permette di:
 
 Questo rende facile personalizzare il comportamento dell'AI senza modificare manualmente file JSON.
 
+#### Dizionario Personale
+
+Permette di modificare e salvare `personal_dictionary.txt` direttamente dal browser. Al salvataggio, il servizio STT viene ricaricato automaticamente per applicare subito le nuove parole.
+
+#### Controllo VibeFlow
+
+Consente di gestire il processo principale senza aprire un terminale separato:
+- ▶️ **Avvia** `main.py` come sottoprocesso
+- ⏹️ **Ferma** il processo in modo pulito
+- 📋 **Console log** aggiornata automaticamente ogni 2 secondi con stdout/stderr di `main.py`
+- 🟢 **Indicatore di stato** con PID del processo
+
 ## 🎨 Stili di Vibe
 
-### 1️⃣ Confidenziale (Freccia Basso + 1)
+### 1️⃣ Confidenziale (CTRL+ALT+1)
 - Tono amichevole e naturale
 - Rimuove riempitivi ("tipo", "cioè")
 - Ideale per: chat, messaggi informali
@@ -190,7 +204,7 @@ Input:  "Ehm ciao, allora tipo volevo sapere se ci vediamo domani"
 Output: "Ciao! Volevo sapere se ci vediamo domani 😊"
 ```
 
-### 2️⃣ Formale (Freccia Basso + 2)
+### 2️⃣ Formale (CTRL+ALT+2)
 - Tono professionale e cortese
 - Struttura ben organizzata
 - Ideale per: email, lettere, proposte
@@ -207,7 +221,7 @@ Resto in attesa di un Vostro cortese riscontro.
 Cordiali saluti"
 ```
 
-### 3️⃣ Tecnico (Freccia Basso + 3)
+### 3️⃣ Tecnico (CTRL+ALT+3)
 - Linguaggio preciso e strutturato
 - Formatta liste e punti elenco
 - Ideale per: documentazione, specifiche, report
@@ -226,20 +240,25 @@ Il sistema deve implementare le seguenti funzionalità:
 
 ## 📝 Dizionario Personalizzato
 
-Puoi aggiungere termini tecnici, nomi propri o acronimi al file `personal_dictionary.txt`:
+Puoi aggiungere termini tecnici, nomi propri o acronimi al file `personal_dictionary.txt`.
 
+**Tramite Dashboard (consigliato):**
+```bash
+python dashboard.py
+```
+Vai su **📖 Dizionario Personale** e modifica direttamente dal browser. Il salvataggio ricarica STT automaticamente.
+
+**Manualmente** — modifica `personal_dictionary.txt`:
 ```
 WebService
-Netesa
 LMStudio
 VibeFlow
 API
 CRUD
 REST
-FastAPI
 ```
 
-Whisper userà questi termini come contesto per migliorare la trascrizione.
+Le righe che iniziano con `#` sono commenti e vengono ignorate. Whisper userà questi termini come contesto per migliorare la trascrizione.
 
 ## 🔧 Configurazione Avanzata
 
