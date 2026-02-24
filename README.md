@@ -162,7 +162,20 @@ Per testare audio e trascrizioni senza usare hotkey:
 python dashboard.py
 ```
 
-Si apre un'interfaccia web Gradio su `http://localhost:7860`
+Si apre un'interfaccia web Gradio su `http://localhost:7860` con due sezioni:
+
+- **🎤 Test Audio** - Testa trascrizione e formattazione senza usare hotkey
+- **⚙️ Editor Profili** - Modifica i system prompt dei tre stili di scrittura
+
+#### Editor Profili
+
+L'editor profili ti permette di:
+- 📝 Visualizzare e modificare i prompt di sistema per ogni stile (Confidenziale, Formale, Tecnico)
+- 💾 Salvare le modifiche in `profiles.json`
+- 🔄 Ricaricare automaticamente l'LLM Service con i nuovi prompt
+- ⚡ Auto-caricamento dei profili all'apertura della dashboard
+
+Questo rende facile personalizzare il comportamento dell'AI senza modificare manualmente file JSON.
 
 ## 🎨 Stili di Vibe
 
@@ -279,15 +292,27 @@ Non è necessario modificare il codice per cambiare provider o configurazione - 
 
 ### LLM Profiles
 
-Modifica gli stili in `llm_service.py` → `PROFILES`:
+Puoi modificare i profili in due modi:
 
-```python
-PROFILES = {
-    "confidential": {
-        "name": "Confidenziale",
-        "instructions": "...",  # Personalizza le istruzioni
-    },
-    # ...
+**1. Tramite Dashboard (Consigliato)**
+```bash
+python dashboard.py
+```
+Vai su **⚙️ Editor Profili** e modifica i system prompt direttamente dall'interfaccia web.
+
+**2. Manualmente**
+Modifica il file `profiles.json`:
+```json
+{
+  "confidential": {
+    "system_prompt": "Tuo prompt personalizzato..."
+  },
+  "formal": {
+    "system_prompt": "Tuo prompt personalizzato..."
+  },
+  "technical": {
+    "system_prompt": "Tuo prompt personalizzato..."
+  }
 }
 ```
 
