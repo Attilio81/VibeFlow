@@ -1,55 +1,66 @@
 import pyperclip
 import time
+import threading
+import logging
 import win32clipboard
 import win32con
+
+logger = logging.getLogger("vibeflow")
+
 
 class ClipboardManager:
     def __init__(self):
         pass
 
-    def paste_text(self, text: str):
+    def _restore_clipboard(self, original: str, delay: float = 1.5) -> None:
+        """Restore the original clipboard contents after a delay.
+
+        Runs in a background thread so paste_text() returns immediately
+        without blocking the main pipeline.  The delay gives the target
+        application enough time to read the clipboard before we overwrite it.
         """
-        Backs up the clipboard, sets the new text, simulates CTRL+V using Windows API,
-        and restores the clipboard.
-        """
-        print(f"Pasting text: {text[:50]}..." if len(text) > 50 else f"Pasting text: {text}")
-        
-        # Backup original clipboard
+        def _do_restore():
+            time.sleep(delay)
+            try:
+                win32clipboard.OpenClipboard()
+                win32clipboard.EmptyClipboard()
+                win32clipboard.SetClipboardText(original, win32con.CF_UNICODETEXT)
+                win32clipboard.CloseClipboard()
+            except Exception:
+                try:
+                    pyperclip.copy(original)
+                except Exception:
+                    pass
+            logger.debug("Clipboard restored to original content")
+
+        threading.Thread(target=_do_restore, daemon=True).start()
+
+    def paste_text(self, text: str) -> None:
+        """Back up the clipboard, inject text, send Ctrl+V, then restore asynchronously."""
+        logger.info(f"Pasting text: {text[:50]}..." if len(text) > 50 else f"Pasting text: {text}")
+
+        # Back up original clipboard
         try:
             original_clipboard = pyperclip.paste()
-        except:
+        except Exception:
             original_clipboard = ""
-        
-        # Set new text in clipboard using Windows API
+
+        # Write new text to clipboard using Windows API
         try:
             win32clipboard.OpenClipboard()
             win32clipboard.EmptyClipboard()
             win32clipboard.SetClipboardText(text, win32con.CF_UNICODETEXT)
             win32clipboard.CloseClipboard()
         except Exception as e:
-            print(f"Clipboard error: {e}")
-            # Fallback to pyperclip
+            logger.warning(f"win32clipboard error, falling back to pyperclip: {e}")
             pyperclip.copy(text)
-        
-        # Longer wait for clipboard to be ready
-        time.sleep(0.5)
-        
-        # Use keyboard module for paste
+
+        # Small wait to make sure the clipboard is fully populated before paste
+        time.sleep(0.2)
+
         import keyboard
         keyboard.send('ctrl+v')
-        
-        print("Paste command sent")
-        
-        # Wait before restoring
-        time.sleep(0.5)
-        
-        # Restore original clipboard
-        try:
-            win32clipboard.OpenClipboard()
-            win32clipboard.EmptyClipboard()
-            win32clipboard.SetClipboardText(original_clipboard, win32con.CF_UNICODETEXT)
-            win32clipboard.CloseClipboard()
-        except:
-            pyperclip.copy(original_clipboard)
-        
-        print("Paste complete")
+        logger.info("Paste command sent")
+
+        # Restore original clipboard in background after a safe delay
+        self._restore_clipboard(original_clipboard, delay=1.5)

@@ -1,3 +1,4 @@
+import os
 import gradio as gr
 from dotenv import load_dotenv
 from stt_service import STTService
@@ -13,7 +14,9 @@ print("Services Initialized.")
 
 def update_provider(provider):
     global llm_service
-    llm_service = LLMService(provider=provider.lower())
+    # LLMService reads LLM_PROVIDER from env – set it before instantiating
+    os.environ["LLM_PROVIDER"] = provider.lower()
+    llm_service = LLMService()
     return f"Provider impostato su {provider}"
 
 def process_audio(audio_path, vibe):
