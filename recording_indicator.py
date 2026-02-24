@@ -15,7 +15,7 @@ except Exception:
     logger.warning("pywin32 not available – focus restoration disabled")
 
 class RecordingIndicator:
-    def __init__(self):
+    def __init__(self, provider="lmstudio"):
         """Initialize with pre-created window for better threading support."""
         self.window = None
         self.is_showing = False
@@ -24,6 +24,7 @@ class RecordingIndicator:
         self.stop_recording = False  # Flag for manual stop
         self.saved_window_handle = None  # Save active window
         self.current_rms = 0.0  # Latest audio level from AudioManager
+        self.provider = provider  # LLM provider (lmstudio or deepseek)
         
         # Try to initialize Tkinter window
         try:
@@ -119,14 +120,15 @@ class RecordingIndicator:
             )
             self.waveform_bars.append(bar)
         
-        # Bottom bar with language icon
+        # Bottom bar with provider icon
         bottom_frame = tk.Frame(self.window, bg='#1a1a1a', height=30)
         bottom_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
         
-        # Language/globe icon
+        # Provider icon (💻 for local, ☁️ for cloud)
+        provider_icon = '💻' if self.provider == 'lmstudio' else '☁️'
         self.label = tk.Label(
             bottom_frame,
-            text='🌐',
+            text=provider_icon,
             font=("Segoe UI", 14),
             bg='#1a1a1a',
             fg='white'
@@ -176,7 +178,8 @@ class RecordingIndicator:
         self.is_showing = True
         self.stop_recording = False  # Reset stop flag
         try:
-            self.label.config(text='�')
+            provider_icon = '💻' if self.provider == 'lmstudio' else '☁️'
+            self.label.config(text=f'🎤 {provider_icon}')
             self.stop_button.config(bg='#2a2a2a', state='normal')
             self.confirm_button.config(bg='#2a2a2a', state='normal')
             self.window.deiconify()

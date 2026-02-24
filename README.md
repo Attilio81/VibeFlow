@@ -4,7 +4,7 @@
 
 ## ✨ Caratteristiche
 
-- 🎯 **Hotkey globali** - Registra in qualsiasi applicazione con `CTRL+ALT+1/2/3`
+- 🎯 **Hotkey globali** - Registra in qualsiasi applicazione con `Freccia Basso + 1/2/3`
 - 🎨 **3 stili di scrittura** - Confidenziale, Formale, Tecnico
 - 🧠 **AI-powered** - Rimuove automaticamente riempitivi ("ehm", "uhm"), formatta liste e corregge grammatica
 - 🚀 **CUDA accelerato** - Whisper medium model su GPU per trascrizioni veloci e precise
@@ -22,6 +22,7 @@ Durante la registrazione appare un elegante overlay con waveform animata:
 - **✓ (Conferma)** - Conferma e continua (stesso comportamento di Stop)
 - **Animazione waveform** - Barre bianche che si muovono con la tua voce
 - **Indicatori di stato** - Cambio colore durante processing (arancione → verde/rosso)
+- **Indicatore provider** - 💻 per LMStudio locale, ☁️ per DeepSeek cloud (sempre visibile)
 
 ## 🏗️ Architettura
 
@@ -141,15 +142,15 @@ L'app si avvia in background e ascolta gli hotkey globali.
 
 | Hotkey | Vibe | Descrizione |
 |--------|------|-------------|
-| `CTRL+ALT+1` | **Confidenziale** | Stile amichevole e colloquiale (WhatsApp, chat) |
-| `CTRL+ALT+2` | **Formale** | Stile professionale (email, documenti) |
-| `CTRL+ALT+3` | **Tecnico** | Stile preciso e strutturato (documentazione, report) |
+| `Freccia Basso + 1` | **Confidenziale** | Stile amichevole e colloquiale (WhatsApp, chat) |
+| `Freccia Basso + 2` | **Formale** | Stile professionale (email, documenti) |
+| `Freccia Basso + 3` | **Tecnico** | Stile preciso e strutturato (documentazione, report) |
 
 ### Workflow tipico
 
 1. **Posizionati** dove vuoi scrivere (Word, browser, Notepad, etc.)
-2. **Premi** `CTRL+ALT+1` (o 2/3)
-3. **Parla** - Apparirà l'overlay con waveform animata
+2. **Premi** `Freccia Basso + 1` (o 2/3)
+3. **Parla** - Apparirà l'overlay con waveform animata e l'icona del provider (💻 o ☁️)
 4. **Finisci** - Clicca **✕ Stop** oppure attendi 3 secondi di silenzio
 5. **Automatico** - Il testo viene trascritto, formattato e incollato dove stavi scrivendo
 
@@ -165,7 +166,7 @@ Si apre un'interfaccia web Gradio su `http://localhost:7860`
 
 ## 🎨 Stili di Vibe
 
-### 1️⃣ Confidenziale (CTRL+ALT+1)
+### 1️⃣ Confidenziale (Freccia Basso + 1)
 - Tono amichevole e naturale
 - Rimuove riempitivi ("tipo", "cioè")
 - Ideale per: chat, messaggi informali
@@ -176,7 +177,7 @@ Input:  "Ehm ciao, allora tipo volevo sapere se ci vediamo domani"
 Output: "Ciao! Volevo sapere se ci vediamo domani 😊"
 ```
 
-### 2️⃣ Formale (CTRL+ALT+2)
+### 2️⃣ Formale (Freccia Basso + 2)
 - Tono professionale e cortese
 - Struttura ben organizzata
 - Ideale per: email, lettere, proposte
@@ -193,7 +194,7 @@ Resto in attesa di un Vostro cortese riscontro.
 Cordiali saluti"
 ```
 
-### 3️⃣ Tecnico (CTRL+ALT+3)
+### 3️⃣ Tecnico (Freccia Basso + 3)
 - Linguaggio preciso e strutturato
 - Formatta liste e punti elenco
 - Ideale per: documentazione, specifiche, report
@@ -397,7 +398,7 @@ python test_cuda.py
 Test completo workflow:
 ```bash
 python main.py
-# Premi CTRL+ALT+1 e parla
+# Premi Freccia Basso + 1 e parla
 ```
 
 ## 🤝 Contribuire

@@ -63,7 +63,7 @@ class VibeFlowApp:
 
         logger.info("[4/4] Initializing Recording Indicator...")
         self.clipboard_manager = ClipboardManager()
-        self.indicator = RecordingIndicator()
+        self.indicator = RecordingIndicator(provider=self.llm_service.provider)
         self.is_processing = False
 
         logger.info("=" * 60)
@@ -131,15 +131,15 @@ class VibeFlowApp:
 
     def run(self):
         logger.info("Registered Hotkeys:")
-        logger.info("CTRL+ALT+1 -> Confidential")
-        logger.info("CTRL+ALT+2 -> Formal")
-        logger.info("CTRL+ALT+3 -> Technical")
+        logger.info("Freccia Basso + 1 -> Confidential")
+        logger.info("Freccia Basso + 2 -> Formal")
+        logger.info("Freccia Basso + 3 -> Technical")
         logger.info("Press ESC to exit.\n")
 
         # We use threading so the hotkey listener doesn't block the execution
-        keyboard.add_hotkey('ctrl+alt+1', lambda: threading.Thread(target=self.process_vibe, args=("confidential",), daemon=True).start())
-        keyboard.add_hotkey('ctrl+alt+2', lambda: threading.Thread(target=self.process_vibe, args=("formal",), daemon=True).start())
-        keyboard.add_hotkey('ctrl+alt+3', lambda: threading.Thread(target=self.process_vibe, args=("technical",), daemon=True).start())
+        keyboard.add_hotkey('down+1', lambda: threading.Thread(target=self.process_vibe, args=("confidential",), daemon=True).start())
+        keyboard.add_hotkey('down+2', lambda: threading.Thread(target=self.process_vibe, args=("formal",), daemon=True).start())
+        keyboard.add_hotkey('down+3', lambda: threading.Thread(target=self.process_vibe, args=("technical",), daemon=True).start())
 
         # Keep Tkinter main loop running if overlay is available
         if self.indicator.window:
