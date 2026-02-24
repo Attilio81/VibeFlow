@@ -10,7 +10,6 @@ LMStudio
 VibeFlow
 
 # Esempi di nomi propri o aziende
-Netesa
 DeepSeek
 
 # Acronimi comuni

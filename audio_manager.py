@@ -21,7 +21,7 @@ class AudioManager:
 
         # Voice Activity Detection parameters
         self.silence_threshold = 0.015  # RMS threshold for silence detection (increased sensitivity)
-        self.silence_duration = 3.0  # Seconds of silence before stopping (more time to think)
+        self.silence_duration = 5.0  # Seconds of silence before stopping (more time to think)
         self.max_duration = 60  # Maximum recording duration in seconds
         self.min_duration = 0.3  # Minimum speech duration to be valid
 
