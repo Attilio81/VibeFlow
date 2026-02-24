@@ -3,28 +3,37 @@ from agno.agent import Agent
 from agno.models.lmstudio import LMStudio
 
 class LLMService:
-    def __init__(self, provider=None, base_url="http://127.0.0.1:1234/v1"):
-        self.provider = provider or os.getenv("LLM_PROVIDER", "lmstudio")
+    def __init__(self):
+        """Initialize LLM service with configuration from environment variables."""
+        self.provider = os.getenv("LLM_PROVIDER", "lmstudio")
         
         if self.provider == "lmstudio":
-            self.model_id = "meta-llama-3.1-8b-instruct"
+            # Read LMStudio configuration from .env
+            base_url = os.getenv("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")
+            model_id = os.getenv("LMSTUDIO_MODEL_ID", "meta-llama-3.1-8b-instruct")
+            
             self.model = LMStudio(
-                id=self.model_id,
+                id=model_id,
                 base_url=base_url,
                 name="LMStudio",
             )
+            print(f"Using LMStudio at {base_url} with model {model_id}")
+            
         elif self.provider == "deepseek":
             # Lazy import to avoid authentication errors when not using DeepSeek
             from agno.models.deepseek import DeepSeek
             api_key = os.getenv("DEEPSEEK_API_KEY")
             if not api_key:
-                raise ValueError("DEEPSEEK_API_KEY not set. Please set the DEEPSEEK_API_KEY environment variable.")
+                raise ValueError("DEEPSEEK_API_KEY not set. Please set it in .env file")
+            
             self.model = DeepSeek(
                 id="deepseek-chat",
                 api_key=api_key,
             )
+            print("Using DeepSeek cloud API")
+            
         else:
-            raise ValueError(f"Provider {self.provider} non supportato.")
+            raise ValueError(f"Provider '{self.provider}' not supported. Use 'lmstudio' or 'deepseek'")
         
         self.PROFILES = {
             "confidential": """Sei uno strumento di formattazione del testo professionale come Wispr Flow. Il tuo compito è trasformare trascrizioni vocali grezze in testo pulito e naturale.

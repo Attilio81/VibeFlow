@@ -36,6 +36,7 @@ VibeFlow/
 ├── dashboard.py               # Gradio test interface
 ├── personal_dictionary.txt    # Custom vocabulary
 ├── test_cuda.py               # CUDA verification script
+├── start_vibeflow.bat         # Windows launcher script
 ├── .env                       # Configuration (git-ignored)
 ├── .env.example               # Configuration template
 └── requirements.txt           # Python dependencies
@@ -93,6 +94,7 @@ DEEPSEEK_API_KEY=sk-your-api-key-here
 
 # Se usi LM Studio (privacy totale, ma più lento)
 LMSTUDIO_BASE_URL=http://127.0.0.1:1234/v1
+LMSTUDIO_MODEL_ID=meta-llama-3.1-8b-instruct
 ```
 
 **Per ottenere API key DeepSeek:**
@@ -100,6 +102,13 @@ LMSTUDIO_BASE_URL=http://127.0.0.1:1234/v1
 2. Registrati/Login
 3. Vai su API Keys → Crea nuova chiave
 4. Copia la chiave in `.env`
+
+**Per configurare LM Studio:**
+1. Scarica e installa [LM Studio](https://lmstudio.ai/)
+2. Carica un modello compatibile (es. Llama-3-8B, Mistral-7B)
+3. Avvia il server locale (porta 1234)
+4. Imposta `LLM_PROVIDER=lmstudio` in `.env`
+5. (Opzionale) Modifica `LMSTUDIO_MODEL_ID` se usi un modello diverso
 
 ### 5. (Opzionale) Verifica CUDA
 
@@ -116,6 +125,12 @@ Dovresti vedere:
 
 ### Avvia l'applicazione principale
 
+**Opzione 1: Doppio click (Windows)**
+```
+start_vibeflow.bat
+```
+
+**Opzione 2: Da terminale**
 ```bash
 python main.py
 ```
@@ -242,6 +257,24 @@ model = WhisperModel(
 - `small` - Accurato (~2GB VRAM)
 - `medium` - **Consigliato** - Molto accurato (~5GB VRAM) ✅
 - `large` - Massima precisione (~10GB VRAM)
+
+### LLM Configuration
+
+Tutte le configurazioni LLM sono gestite tramite `.env`:
+
+```env
+# Scegli il provider
+LLM_PROVIDER=deepseek          # o "lmstudio"
+
+# DeepSeek (cloud)
+DEEPSEEK_API_KEY=sk-xxx
+
+# LM Studio (locale)
+LMSTUDIO_BASE_URL=http://127.0.0.1:1234/v1
+LMSTUDIO_MODEL_ID=meta-llama-3.1-8b-instruct
+```
+
+Non è necessario modificare il codice per cambiare provider o configurazione - tutto è parametrizzato nel file `.env`.
 
 ### LLM Profiles
 
