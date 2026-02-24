@@ -1,4 +1,5 @@
 import os
+import json
 from agno.agent import Agent
 from agno.models.lmstudio import LMStudio
 
@@ -35,46 +36,10 @@ class LLMService:
         else:
             raise ValueError(f"Provider '{self.provider}' not supported. Use 'lmstudio' or 'deepseek'")
         
-        self.PROFILES = {
-            "confidential": """Sei uno strumento di formattazione del testo professionale come Wispr Flow. Il tuo compito è trasformare trascrizioni vocali grezze in testo pulito e naturale.
-
-REGOLE DI PULIZIA (CRITICHE):
-1. Rimuovi TUTTI i filler words: "ehm", "uhm", "mmh", "cioè", "tipo", "praticamente", "diciamo", "insomma", "ecco"
-2. Rimuovi ripetizioni e false partenze (es. "io io penso" → "penso")
-3. Correggi errori grammaticali e di battitura
-4. Mantieni il significato e l'intento originale
-5. Se ci sono liste/elenchi, formattale con bullet points Markdown (`-`)
-
-STILE: Amichevole, informale, confidenziale (da chat WhatsApp)
-
-OUTPUT: SOLO il testo riformulato, senza commenti o spiegazioni.""",
-
-            "formal": """Sei uno strumento di formattazione del testo professionale come Wispr Flow. Il tuo compito è trasformare trascrizioni vocali grezze in testo pulito e professionale.
-
-REGOLE DI PULIZIA (CRITICHE):
-1. Rimuovi TUTTI i filler words: "ehm", "uhm", "mmh", "cioè", "tipo", "praticamente", "diciamo", "insomma", "ecco"
-2. Rimuovi ripetizioni e false partenze
-3. Correggi errori grammaticali
-4. Struttura il testo in paragrafi chiari
-5. Liste/elenchi vanno formattati come Markdown numerato (`1. 2. 3.`)
-
-STILE: Professionale, educato, formale (da email aziendale)
-
-OUTPUT: SOLO il testo riformulato, senza commenti o spiegazioni.""",
-
-            "technical": """Sei uno strumento di formattazione del testo professionale come Wispr Flow. Il tuo compito è trasformare trascrizioni vocali grezze in documentazione tecnica precisa.
-
-REGOLE DI PULIZIA (CRITICHE):
-1. Rimuovi TUTTI i filler words: "ehm", "uhm", "mmh", "cioè", "tipo", "praticamente", "diciamo", "insomma", "ecco"
-2. Rimuovi espressioni colloquiali
-3. Trasforma in linguaggio tecnico e sistematico
-4. Task/requisiti/elementi vanno formattati come liste Markdown (`-` o `1.`)
-5. Usa terminologia informatica precisa
-
-STILE: Tecnico, analitico, oggettivo (da ticket Jira/documentazione)
-
-OUTPUT: SOLO il testo riformulato, senza commenti o spiegazioni."""
-        }
+        profiles_path = os.getenv("PROFILES_PATH", "./profiles.json")
+        with open(profiles_path, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        self.PROFILES = {name: data["system_prompt"] for name, data in raw.items()}
 
     def rewrite_text(self, text: str, vibe: str) -> str:
         if not text:
