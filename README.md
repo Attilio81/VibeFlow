@@ -393,7 +393,7 @@ Questo progetto è rilasciato sotto licenza MIT. Vedi il file `LICENSE` per dett
 
 - 🐛 **Issues** - Apri un issue su GitHub
 - 💬 **Discussioni** - Usa GitHub Discussions
-- 📧 **Email** - [tua@email.com](mailto:attilio.pregnolato@gmail.com)
+- 📧 **Email** - [attilio.pregnolato@gmail.com](mailto:attilio.pregnolato@gmail.com)
 
 ---
 
