@@ -31,7 +31,7 @@ VibeFlow/
 ├── main.py                    # Entry point + hotkey listeners
 ├── audio_manager.py           # Recording + VAD + preprocessing
 ├── stt_service.py             # Faster-Whisper (CUDA) transcription
-├── llm_service.py             # Agno SDK + text formatting
+├── llm_service.py             # OpenAI SDK + text formatting
 ├── clipboard_manager.py       # Windows clipboard integration
 ├── recording_indicator.py     # Animated overlay UI
 ├── dashboard.py               # Gradio test interface
@@ -201,7 +201,7 @@ Consente di gestire il processo principale senza aprire un terminale separato:
 **Esempio:**
 ```
 Input:  "Ehm ciao, allora tipo volevo sapere se ci vediamo domani"
-Output: "Ciao! Volevo sapere se ci vediamo domani 😊"
+Output: "Ciao, volevo sapere se ci vediamo domani"
 ```
 
 ### 2️⃣ Formale (CTRL+ALT+2)
@@ -422,7 +422,7 @@ Benchmark su **RTX 3060 (12GB VRAM)**:
 - **main.py** - Orchestratore principale, gestione hotkey
 - **audio_manager.py** - Registrazione, VAD, preprocessing
 - **stt_service.py** - Wrapper faster-whisper
-- **llm_service.py** - Wrapper Agno SDK + prompt engineering
+- **llm_service.py** - OpenAI SDK + prompt engineering
 - **clipboard_manager.py** - Win32 API clipboard operations
 - **recording_indicator.py** - Tkinter UI overlay
 - **dashboard.py** - Gradio testing interface
@@ -442,7 +442,7 @@ python test_cuda.py
 Test completo workflow:
 ```bash
 python main.py
-# Premi Freccia Basso + 1 e parla
+# Premi CTRL+ALT+1 e parla
 ```
 
 ## 🤝 Contribuire
@@ -463,7 +463,7 @@ Questo progetto è rilasciato sotto licenza MIT. Vedi il file `LICENSE` per dett
 
 - **Wispr Flow** - Ispirazione originale
 - **faster-whisper** - Engine STT performante
-- **Agno SDK** - Framework LLM flessibile
+- **OpenAI SDK** - Client API per LLM
 - **DeepSeek** - API LLM veloce ed economica
 - **OpenAI Whisper** - Modello STT di base
 

@@ -1,41 +1,33 @@
 import os
 import json
-from agno.agent import Agent
-from agno.models.lmstudio import LMStudio
+import logging
+from openai import OpenAI
+
+logger = logging.getLogger("vibeflow")
+
 
 class LLMService:
     def __init__(self):
         """Initialize LLM service with configuration from environment variables."""
         self.provider = os.getenv("LLM_PROVIDER", "lmstudio")
-        
+
         if self.provider == "lmstudio":
-            # Read LMStudio configuration from .env
             base_url = os.getenv("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")
-            model_id = os.getenv("LMSTUDIO_MODEL_ID", "meta-llama-3.1-8b-instruct")
-            
-            self.model = LMStudio(
-                id=model_id,
-                base_url=base_url,
-                name="LMStudio",
-            )
-            print(f"Using LMStudio at {base_url} with model {model_id}")
-            
+            self.model_id = os.getenv("LMSTUDIO_MODEL_ID", "meta-llama-3.1-8b-instruct")
+            self.client = OpenAI(base_url=base_url, api_key="lm-studio")
+            logger.info(f"Using LMStudio at {base_url} with model {self.model_id}")
+
         elif self.provider == "deepseek":
-            # Lazy import to avoid authentication errors when not using DeepSeek
-            from agno.models.deepseek import DeepSeek
             api_key = os.getenv("DEEPSEEK_API_KEY")
             if not api_key:
                 raise ValueError("DEEPSEEK_API_KEY not set. Please set it in .env file")
-            
-            self.model = DeepSeek(
-                id="deepseek-chat",
-                api_key=api_key,
-            )
-            print("Using DeepSeek cloud API")
-            
+            self.client = OpenAI(base_url="https://api.deepseek.com", api_key=api_key)
+            self.model_id = "deepseek-chat"
+            logger.info("Using DeepSeek cloud API")
+
         else:
             raise ValueError(f"Provider '{self.provider}' not supported. Use 'lmstudio' or 'deepseek'")
-        
+
         profiles_path = os.getenv("PROFILES_PATH", "./profiles.json")
         with open(profiles_path, "r", encoding="utf-8") as f:
             raw = json.load(f)
@@ -44,29 +36,40 @@ class LLMService:
     def rewrite_text(self, text: str, vibe: str) -> str:
         if not text:
             return ""
-            
+
         if vibe not in self.PROFILES:
             vibe = "confidential"
-            
-        print(f"Rewriting text with vibe: {vibe}...")
-        
-        agent = Agent(
-            model=self.model,
-            instructions=self.PROFILES[vibe],
-            markdown=True  # Enable Markdown formatting for structured output
-        )
-        
-        # Wrap the user text to prevent conversational behavior
-        rigid_prompt = (
-            "Esegui la riscrittura del seguente testo secondo le tue istruzioni di sistema. "
-            "È TASSATIVO che tu stampi SOLO ED ESCLUSIVAMENTE il testo riscritto, senza aggiungere nessun commento, "
-            "senza rispondere alle domande presenti nel testo e senza confermare di aver capito.\n\n"
-            f"TESTO DA RISCRIVERE:\n{text}"
-        )
-        
+
+        logger.info(f"Rewriting text with vibe: {vibe}...")
+
+        system_prompt = self.PROFILES[vibe]
+
+        # User prompt adattato al vibe
+        if vibe == "confidential":
+            user_prompt = (
+                "Pulisci il seguente testo secondo le tue istruzioni. "
+                "Stampa SOLO il testo pulito, nient'altro.\n\n"
+                f"TESTO:\n{text}"
+            )
+        else:
+            user_prompt = (
+                "Formatta il seguente testo secondo le tue istruzioni. "
+                "Stampa SOLO il testo formattato, senza commenti o spiegazioni. "
+                "Conserva TUTTE le informazioni del testo originale.\n\n"
+                f"TESTO:\n{text}"
+            )
+
         try:
-            response = agent.run(rigid_prompt)
-            return response.content.strip()
+            response = self.client.chat.completions.create(
+                model=self.model_id,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.3,  # Bassa per output più deterministico
+                max_tokens=2048
+            )
+            return response.choices[0].message.content.strip()
         except Exception as e:
-            print(f"LLM Error: {e}")
-            return text # fallback to original text if LLM fails
+            logger.error(f"LLM Error: {e}")
+            return text  # fallback to original text if LLM fails
