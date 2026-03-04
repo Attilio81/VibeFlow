@@ -11,6 +11,8 @@ VibeFlow
 
 # Esempi di nomi propri o aziende
 DeepSeek
+Ethan
+Aiden
 
 # Acronimi comuni
 API

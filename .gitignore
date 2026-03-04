@@ -49,3 +49,4 @@ dist/
 models/
 *.bin
 *.gguf
+personal_dictionary.txt

@@ -6,8 +6,8 @@ import time
 import tempfile
 import threading
 import logging
-import noisereduce as nr
-from scipy import signal
+import queue
+import webrtcvad
 
 logger = logging.getLogger("vibeflow")
 
@@ -20,10 +20,17 @@ class AudioManager:
         self.dtype = 'int16'  # 16-bit PCM
 
         # Voice Activity Detection parameters
-        self.silence_threshold = 0.015  # RMS threshold for silence detection (increased sensitivity)
-        self.silence_duration = 5.0  # Seconds of silence before stopping (more time to think)
+        self.vad = webrtcvad.Vad(3)  # Aggressiveness from 0 to 3
+        
+        # WebRTC VAD needs 10, 20, or 30 ms frames. 
+        self.frame_duration_ms = 30
+        self.frame_size = int(self.sample_rate * (self.frame_duration_ms / 1000.0)) # 480 samples
+
+        self.silence_duration = 5.0  # Seconds of silence before stopping
         self.max_duration = 60  # Maximum recording duration in seconds
         self.min_duration = 0.3  # Minimum speech duration to be valid
+        
+        self.audio_queue = queue.Queue()
 
         # External control
         self.stop_callback = None  # Callback to check if user requested stop
@@ -47,42 +54,6 @@ class AudioManager:
 
         threading.Thread(target=_play, daemon=True).start()
 
-    def calculate_rms(self, audio_chunk):
-        """Calculate Root Mean Square (RMS) energy of audio chunk."""
-        return np.sqrt(np.mean(audio_chunk.astype(float)**2))
-
-    def preprocess_audio(self, audio_data):
-        """Apply balanced noise reduction and normalization for better STT."""
-        # Convert to float for processing
-        audio_float = audio_data.astype(np.float32).flatten()
-
-        # 1. Moderate noise reduction (not too aggressive)
-        audio_float = nr.reduce_noise(
-            y=audio_float,
-            sr=self.sample_rate,
-            stationary=True,
-            prop_decrease=0.8  # Moderate reduction
-        )
-
-        # 2. High-pass filter to remove low-frequency rumble (< 80 Hz)
-        sos_hp = signal.butter(3, 80, 'hp', fs=self.sample_rate, output='sos')
-        audio_float = signal.sosfilt(sos_hp, audio_float)
-
-        # 3. Low-pass filter to remove high-frequency noise (> 7500 Hz)
-        sos_lp = signal.butter(3, 7500, 'lp', fs=self.sample_rate, output='sos')
-        audio_float = signal.sosfilt(sos_lp, audio_float)
-
-        # 4. Simple normalization to -1 dB
-        max_val = np.abs(audio_float).max()
-        if max_val > 0:
-            target_level = 0.891  # -1 dB
-            audio_float = audio_float * (target_level / max_val)
-
-        # 5. Convert back to int16
-        audio_int16 = np.clip(audio_float * 32767, -32768, 32767).astype(np.int16)
-
-        return audio_int16.reshape(-1, 1)
-
     def record_audio(self, stop_callback=None, audio_level_callback=None) -> str | None:
         """Records from the microphone with VAD until silence or manual stop.
 
@@ -97,27 +68,26 @@ class AudioManager:
         """
         self.stop_callback = stop_callback
 
-        logger.info("Calibrating noise level...")
-        # Record 0.5 seconds to calibrate noise threshold
-        calibration = sd.rec(int(0.5 * self.sample_rate),
-                            samplerate=self.sample_rate,
-                            channels=self.channels,
-                            dtype=self.dtype)
-        sd.wait()
-        noise_level = self.calculate_rms(calibration)
-        # Set threshold above noise level
-        self.silence_threshold = max(noise_level * 2.5, 0.01)
-
         self.play_sound("start")
-        logger.info(f"Listening... (silence threshold: {self.silence_threshold:.4f})")
+        logger.info("Listening... waiting for speech")
         logger.info("Click STOP button or wait for silence detection to end recording")
 
-        # Start recording
         recording = []
-        silence_duration_counter = 0
+        silence_duration_counter = 0.0
         speech_detected = False
-        chunk_duration = 0.1  # Process in 100ms chunks
-        chunk_size = int(chunk_duration * self.sample_rate)
+        
+        # Clear the queue from any previous runs
+        while not self.audio_queue.empty():
+            self.audio_queue.get_nowait()
+
+        # Buffer to accumulate incoming audio samples until we have a full VAD frame
+        sample_buffer = np.array([], dtype=np.int16)
+
+        def audio_callback(indata, frames, time_info, status):
+            """Callback for sounddevice. Puts audio chunks into the queue asynchronously."""
+            if status:
+                logger.warning(f"SoundDevice status: {status}")
+            self.audio_queue.put(indata.copy())
 
         # Use a unique temp file per recording to avoid collisions
         tmp_fd, temp_file = tempfile.mkstemp(suffix=".wav", prefix="vibeflow_")
@@ -125,44 +95,65 @@ class AudioManager:
         try:
             stream = sd.InputStream(samplerate=self.sample_rate,
                                    channels=self.channels,
-                                   dtype=self.dtype)
-            stream.start()
-
-            total_duration = 0
-
-            while total_duration < self.max_duration:
-                # Check if user clicked stop button
-                if self.stop_callback and self.stop_callback():
-                    logger.info("Manual stop requested by user")
-                    break
-
-                # Read a chunk
-                chunk, overflowed = stream.read(chunk_size)
-                recording.append(chunk)
-
-                # Calculate energy
-                rms = self.calculate_rms(chunk)
-
-                # Report level to waveform visualiser if available
-                if audio_level_callback:
-                    audio_level_callback(rms)
-
-                # Check if speech is detected
-                if rms > self.silence_threshold:
-                    speech_detected = True
-                    silence_duration_counter = 0
-                elif speech_detected:
-                    # We had speech, now silence
-                    silence_duration_counter += chunk_duration
-
-                    if silence_duration_counter >= self.silence_duration:
-                        logger.info(f"Silence detected for {self.silence_duration}s, stopping...")
+                                   dtype=self.dtype,
+                                   callback=audio_callback)
+            
+            with stream:
+                total_duration = 0.0
+                start_time = time.time()
+                
+                while total_duration < self.max_duration:
+                    # Check if user clicked stop button
+                    if self.stop_callback and self.stop_callback():
+                        logger.info("Manual stop requested by user")
                         break
 
-                total_duration += chunk_duration
+                    try:
+                        # Wait for a chunk from the callback thread
+                        chunk = self.audio_queue.get(timeout=0.1)
+                    except queue.Empty:
+                        continue
+                        
+                    recording.append(chunk)
+                    
+                    # Flatten the chunk to 1D and append to buffer
+                    flat_chunk = chunk.flatten()
+                    sample_buffer = np.append(sample_buffer, flat_chunk)
 
-            stream.stop()
-            stream.close()
+                    # Update UI waveform if a callback is provided (calculate rough RMS)
+                    if audio_level_callback:
+                        rms = np.sqrt(np.mean(flat_chunk.astype(float)**2)) if len(flat_chunk) > 0 else 0
+                        audio_level_callback(rms)
+
+                    # Process buffer in chunks of `frame_size` for WebRTC VAD
+                    while len(sample_buffer) >= self.frame_size:
+                        # Extract one frame
+                        frame = sample_buffer[:self.frame_size]
+                        # Remove it from buffer
+                        sample_buffer = sample_buffer[self.frame_size:]
+                        
+                        # Convert to bytes for WebRTC VAD
+                        frame_bytes = frame.tobytes()
+                        
+                        try:
+                            is_speech = self.vad.is_speech(frame_bytes, self.sample_rate)
+                        except Exception as e:
+                            logger.error(f"VAD error: {e}")
+                            is_speech = False
+                            
+                        # Keep track of silence
+                        if is_speech:
+                            speech_detected = True
+                            silence_duration_counter = 0.0
+                        elif speech_detected:
+                            # We had speech, now silence
+                            silence_duration_counter += (self.frame_duration_ms / 1000.0)
+
+                    if speech_detected and silence_duration_counter >= self.silence_duration:
+                        logger.info(f"Silence detected for {self.silence_duration}s, stopping...")
+                        break
+                        
+                    total_duration = time.time() - start_time
 
             # Reset level indicator to zero when recording ends
             if audio_level_callback:
@@ -182,14 +173,11 @@ class AudioManager:
 
             self.play_sound("processing")
 
-            # Apply audio preprocessing for better STT accuracy
-            audio_data = self.preprocess_audio(audio_data)
-
             # Write to the temp file (fd is already open – close it first so sf can write)
             import os
             os.close(tmp_fd)
             sf.write(temp_file, audio_data, self.sample_rate)
-            logger.info(f"Recorded {total_duration:.1f}s of audio (preprocessed) → {temp_file}")
+            logger.info(f"Recorded {total_duration:.1f}s of audio → {temp_file}")
 
             return temp_file
 
